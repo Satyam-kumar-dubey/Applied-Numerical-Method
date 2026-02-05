@@ -63,6 +63,7 @@ def gauss_jacobi_3x3(A, b, x0=(0.0, 0.0, 0.0), iterations=4):
 
     return results
 
+
 if __name__ == "__main__":
     A, b = read_system_3x3()
     # Optional: ask initial guess
