@@ -1,73 +1,109 @@
-import numpy as np
+# ---------------- GAUSS ELIMINATION (3x3) ----------------
+# Requirements covered:
+# - Generalized for 3 equations input
+# - Shows formulas at start and at each elimination step
+# - Outputs 4 stages (Step 1, Step 2, Back-sub stage, Final)
+# --------------------------------------------------------
 
-# System:
-# 41x - 2y + 7z = 81
-#  x -27y + 4z = 65
-#  x + 5y +50z = 172
+def read_augmented_matrix_3x3():
+    print("Enter coefficients and RHS for 3 equations in the form:")
+    print("a11 a12 a13 b1")
+    print("a21 a22 a23 b2")
+    print("a31 a32 a33 b3")
+    A = []
+    for i in range(3):
+        row = list(map(float, input(f"Row {i+1}: ").split()))
+        if len(row) != 4:
+            raise ValueError("Each row must have 4 numbers: a1 a2 a3 b")
+        A.append(row)
+    return A  # augmented matrix [A|b], shape 3x4
 
-A = np.array([
-    [41, -2,  7],
-    [ 1, -27, 4],
-    [ 1,  5, 50]
-], dtype=float)
+def print_matrix(M, title="Matrix"):
+    print(f"\n{title}:")
+    for r in M:
+        print("  ", ["{:+.6f}".format(x) for x in r])
 
-b = np.array([81, 65, 172], dtype=float)
+def gauss_elimination_3x3(M):
+    print("\n=== GAUSS ELIMINATION FORMULAS ===")
+    print("We use elimination with multipliers:")
+    print("m21 = a21/a11,  R2 <- R2 - m21*R1")
+    print("m31 = a31/a11,  R3 <- R3 - m31*R1")
+    print("m32 = a32/a22,  R3 <- R3 - m32*R2")
+    print("Then back-substitution:")
+    print("x3 = a3'/a33',  x2 = (b2' - a23'*x3)/a22',  x1 = (b1' - a12'*x2 - a13'*x3)/a11'")
+    print("=================================\n")
 
+    # Copy matrix
+    A = [row[:] for row in M]
 
-def print_aug(M, title=None):
-    if title:
-        print(title)
-    for row in M:
-        print("  " + " ".join(f"{v:12.6f}" for v in row))
-    print()
+    # ---------- Step 1: eliminate below pivot a11 ----------
+    a11 = A[0][0]
+    if a11 == 0:
+        raise ZeroDivisionError("Pivot a11 is zero. (This simple version does not do pivoting.)")
 
+    m21 = A[1][0] / a11
+    m31 = A[2][0] / a11
 
-def gauss_elimination_with_steps(A, b, show_steps=4):
-    print("GAUSS ELIMINATION")
-    print("=================\n")
-    print("Idea / Formula:")
-    print("  Use row operations to convert [A|b] -> upper triangular [U|c]")
-    print("  Then back-substitute to find x, y, z.\n")
+    print("STEP 1 (Eliminate a21 and a31 using Row1)")
+    print(f"m21 = a21/a11 = ({A[1][0]:.6f})/({a11:.6f}) = {m21:.6f}")
+    print(f"R2 <- R2 - m21*R1")
+    print(f"m31 = a31/a11 = ({A[2][0]:.6f})/({a11:.6f}) = {m31:.6f}")
+    print(f"R3 <- R3 - m31*R1")
 
-    aug = np.hstack([A.copy(), b.reshape(-1, 1)])
-    n = aug.shape[0]
+    for j in range(4):
+        A[1][j] = A[1][j] - m21 * A[0][j]
+        A[2][j] = A[2][j] - m31 * A[0][j]
 
-    print("Initial augmented matrix [A|b]:")
-    print_aug(aug)
+    print_matrix(A, "After Step 1")
 
-    step = 0
+    # ---------- Step 2: eliminate below pivot a22 ----------
+    a22 = A[1][1]
+    if a22 == 0:
+        raise ZeroDivisionError("Pivot a22 is zero. (This simple version does not do pivoting.)")
 
-    # Forward elimination (partial pivoting)
-    for k in range(n - 1):
-        pivot_row = k + np.argmax(np.abs(aug[k:, k]))
-        if pivot_row != k:
-            aug[[k, pivot_row]] = aug[[pivot_row, k]]
-            step += 1
-            if step <= show_steps:
-                print_aug(aug, f"Step {step}: Swap R{k+1} <-> R{pivot_row+1} (pivoting)")
+    m32 = A[2][1] / a22
 
-        for i in range(k + 1, n):
-            factor = aug[i, k] / aug[k, k]
-            aug[i, k:] = aug[i, k:] - factor * aug[k, k:]
-            step += 1
-            if step <= show_steps:
-                print_aug(aug, f"Step {step}: R{i+1} = R{i+1} - ({factor:.6f})*R{k+1}")
+    print("\nSTEP 2 (Eliminate a32 using Row2)")
+    print(f"m32 = a32/a22 = ({A[2][1]:.6f})/({a22:.6f}) = {m32:.6f}")
+    print("R3 <- R3 - m32*R2")
 
-    print("After elimination (upper triangular) [U|c]:")
-    print_aug(aug)
+    for j in range(4):
+        A[2][j] = A[2][j] - m32 * A[1][j]
 
-    # Back substitution
-    x = np.zeros(n)
-    for i in range(n - 1, -1, -1):
-        rhs = aug[i, -1] - np.dot(aug[i, i+1:n], x[i+1:n])
-        x[i] = rhs / aug[i, i]
+    print_matrix(A, "After Step 2 (Upper triangular)")
 
-    print("Final solution:")
-    print(f"  x = {x[0]:.8f}")
-    print(f"  y = {x[1]:.8f}")
-    print(f"  z = {x[2]:.8f}")
-    return x
+    # ---------- Step 3: back substitution start (show formulas) ----------
+    print("\nSTEP 3 (Back-substitution formulas with current numbers)")
+    a33 = A[2][2]
+    b3 = A[2][3]
+    a23 = A[1][2]
+    b2 = A[1][3]
+    a12 = A[0][1]
+    a13 = A[0][2]
+    b1 = A[0][3]
 
+    if a33 == 0:
+        raise ZeroDivisionError("a33 became zero; cannot back-substitute.")
+
+    print(f"x3 = b3'/a33' = ({b3:.6f})/({a33:.6f})")
+    x3 = b3 / a33
+    print(f"   = {x3:.6f}")
+
+    print(f"x2 = (b2' - a23'*x3)/a22' = ({b2:.6f} - ({a23:.6f})*({x3:.6f}))/({a22:.6f})")
+    x2 = (b2 - a23 * x3) / a22
+    print(f"   = {x2:.6f}")
+
+    print(f"x1 = (b1' - a12'*x2 - a13'*x3)/a11' = ({b1:.6f} - ({a12:.6f})*({x2:.6f}) - ({a13:.6f})*({x3:.6f}))/({A[0][0]:.6f})")
+    x1 = (b1 - a12 * x2 - a13 * x3) / A[0][0]
+    print(f"   = {x1:.6f}")
+
+    # ---------- Step 4: final result ----------
+    print("\nSTEP 4 (Final Solution)")
+    print(f"x1 = {x1:.6f}, x2 = {x2:.6f}, x3 = {x3:.6f}")
+
+    return (x1, x2, x3)
 
 if __name__ == "__main__":
-    gauss_elimination_with_steps(A, b, show_steps=4)
+    M = read_augmented_matrix_3x3()
+    print_matrix(M, "Initial Augmented Matrix [A|b]")
+    gauss_elimination_3x3(M)
