@@ -68,6 +68,7 @@ def gauss_seidel_3x3(A, b, x0=(0.0, 0.0, 0.0), iterations=4):
 
     return results
 
+
 if __name__ == "__main__":
     A, b = read_system_3x3()
     print("\nEnter initial guess x1 x2 x3 (or press Enter for 0 0 0):")
